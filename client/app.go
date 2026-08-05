@@ -420,6 +420,28 @@ func (app *App) updateAll() {
 	app.updateThreads(ctx)
 }
 
+func counterDelta(current, previous uint64) uint64 {
+	if current < previous {
+		return 0
+	}
+	return current - previous
+}
+
+func formatBitRate(bytesPerSecond uint64) string {
+	bitsPerSecond := float64(bytesPerSecond) * 8
+
+	switch {
+	case bitsPerSecond >= 1_000_000_000:
+		return fmt.Sprintf("%.2f Gbps", bitsPerSecond/1_000_000_000)
+	case bitsPerSecond >= 1_000_000:
+		return fmt.Sprintf("%.2f Mbps", bitsPerSecond/1_000_000)
+	case bitsPerSecond >= 1_000:
+		return fmt.Sprintf("%.2f Kbps", bitsPerSecond/1_000)
+	default:
+		return fmt.Sprintf("%.0f bps", bitsPerSecond)
+	}
+}
+
 // formatInterfaces formats interface stats to xtui.TableRows
 func (app *App) formatInterfaces(ifaces []api.Interface) xtui.TableRows {
 	nameToIdx := make(map[string]int)
@@ -443,23 +465,23 @@ func (app *App) formatInterfaces(ifaces []api.Interface) xtui.TableRows {
 		rows[RowsPerIface*i] = append(rows[RowsPerIface*i], fmt.Sprint(iface.IP4))
 		rows[RowsPerIface*i] = append(rows[RowsPerIface*i], fmt.Sprint(iface.IP6))
 
-		rxbbs := uint64(0) //rx bytes/s
-		txbbs := uint64(0) //tx bytes/s
+		rxBytesPerSecond := uint64(0)
+		txBytesPerSecond := uint64(0)
 		rxpps := uint64(0) //rx packets/s
 		txpps := uint64(0) //tx packets/s
 
 		if idx, ok := nameToIdx[iface.InterfaceName]; ok {
 			// Calculate bytes/s, packets/s
-			rxbbs = iface.Rx.Bytes - app.ifCache[idx].Rx.Bytes
-			txbbs = iface.Tx.Bytes - app.ifCache[idx].Tx.Bytes
+			rxBytesPerSecond = counterDelta(iface.Rx.Bytes, app.ifCache[idx].Rx.Bytes)
+			txBytesPerSecond = counterDelta(iface.Tx.Bytes, app.ifCache[idx].Tx.Bytes)
 
-			rxpps = iface.Rx.Packets - app.ifCache[idx].Rx.Packets
-			txpps = iface.Tx.Packets - app.ifCache[idx].Tx.Packets
+			rxpps = counterDelta(iface.Rx.Packets, app.ifCache[idx].Rx.Packets)
+			txpps = counterDelta(iface.Tx.Packets, app.ifCache[idx].Tx.Packets)
 		}
 
 		rows[RowsPerIface*i+1] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Packets/s", fmt.Sprint(rxpps), "Packets/s", fmt.Sprint(txpps), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+2] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Bytes", fmt.Sprint(iface.Rx.Bytes), "Bytes", fmt.Sprint(iface.Tx.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
-		rows[RowsPerIface*i+3] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Bytes/s", fmt.Sprint(rxbbs), "Bytes/s", fmt.Sprint(txbbs), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
+		rows[RowsPerIface*i+3] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Throughput", formatBitRate(rxBytesPerSecond), "Throughput", formatBitRate(txBytesPerSecond), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+4] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Errors", fmt.Sprint(iface.RxErrors), "Errors", fmt.Sprint(iface.TxErrors), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+5] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Unicast", fmt.Sprintf("%d/%d", iface.RxUnicast.Packets, iface.RxUnicast.Bytes), "UnicastMiss", fmt.Sprintf("%d/%d", iface.TxUnicast.Packets, iface.TxUnicast.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+6] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Multicast", fmt.Sprintf("%d/%d", iface.RxMulticast.Packets, iface.RxMulticast.Bytes), "Multicast", fmt.Sprintf("%d/%d", iface.TxMulticast.Packets, iface.TxMulticast.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
