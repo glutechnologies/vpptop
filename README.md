@@ -8,13 +8,6 @@ Below is a short demo preview of **VPPTop** in action:
 
 [![preview][preview-svg]][preview]
 
-## Branches
-
-|Branch|Supported VPP versions|
-|---|---|
-|[![master][badge-master]][branch-master]| [21.01][vpp-21.01], [21.06][vpp-21.06], [22.02][vpp-22.02]|
-|[![vpp1904][badge-1904]][branch-1904]|[19.04][vpp-19.04]|
-
 ## Features
 
 VPPTop currently supports following metrics:
@@ -27,24 +20,20 @@ VPPTop currently supports following metrics:
 
 ## VPP Requirements
 
-[VPP][wiki-vpp] versions supported are:
-- **21.01**
-- **21.06**
-- **22.02**
+[VPP][wiki-vpp] version supported is:
 
-VPP version supported by the local implementation:
 - **v25.10-release**
 
-All versions except the local one are enabled via Ligato [vpp-agent][vpp-agent]. The local version implementation resides directly in the VPPTop. The meaning of the local VPP support is to easily allow additional VPP versions without manipulating or updating external dependencies. The guide about how to change local in order to support custom version can be found later in the document.
-
-**Note:** for full support of an interface/node names in VPPTop, the VPP version has to be **19.04.4** or newer. The release version of VPP 19.04 does not work properly, because of the [stats API versioning][stats-version-commit], which was added later after the release of VPP 19.04. If you want to use this version of the VPP, use the _stable/1904_ VPPTop branch where it was backported.  
+VPPTop uses the binary API bindings bundled with GovPP. The VPP and GovPP
+versions must therefore use compatible binary API schemas.
 
 ### Install VPP
 
-To install VPP from Packagecloud, run following commands where you replace `<VERSION>` with either `2101`, `2106`, `2202` or `master` for the latest version:
+To install VPP from Packagecloud, run the following commands using the `2510`
+repository:
 
 ```
-curl -s https://packagecloud.io/install/repositories/fdio/<VERSION>/script.deb.sh | sudo bash
+curl -s https://packagecloud.io/install/repositories/fdio/2510/script.deb.sh | sudo bash
 sudo apt-get install -y vpp vpp-dev vpp-plugin-core
 ```
 
@@ -63,7 +52,7 @@ statseg {
 
 ## Install & Run VPPTop
 
-VPPTop requires [Go][go-download] **1.17** (or newer) to install and run.
+VPPTop requires [Go][go-download] **1.26** (or newer) to install and run.
 
 ### Install
 
@@ -92,7 +81,7 @@ make build
 make install
 ```
 
-The command builds a single VPPTop binary supporting both, VPP-Agent-based VPP versions mentioned above, and the local VPP version:
+The command builds a single VPPTop binary using GovPP directly.
 
 VPPTop also supports a light terminal theme. To use darker colors which have better visibility on light background set `VPPTOP_THEME_LIGHT` environment variable.
 
@@ -108,44 +97,10 @@ VPPTop also supports a light terminal theme. To use darker colors which have bet
 6. ``Ctrl-C`` to clear counters for the active table.
 7. ``q`` to quit from the application
 
-## Custom VPP guide
-
-As it was mentioned, VPPTop is tightly bound with the VPP version it tries to connect to. Supported versions are provided from two sources, the Ligato VPP-Agent and from the local implementation. 
-
-The VPP-Agent usually supports multiple VPP versions. However, it may happen that the latest (or some specific) version is not compatible. In this case, VPPTop local may become helpful.
-
-**1. Install desired VPP version.** Related binary API files must be available in the filesystem.
-**2. Generate binary API.** The API is located in `/stats/local/binapi` directory. For VPPTop purposes, following are needed: 
-    * dhcp
-    * interfaces
-    * ip
-    * vpe
-  Files can be easily generated using Makefile's `make generate` target.
-**3. Update VPPTop vppcalls.** They are located in `stats/local/binapi/vppcalls`. Resolve all conflicts and rebuild the VPPTop binary.
-
-Note that the agent and local implementations are independent, and may be used separately. The `vpptop-local` is and example - only locally supported VPP version can be used. 
-Entity managing given implementation is **handler**, meaning there are two handlers available - the VPP handler (agent) and the local handler. The handler communicates with the VPP (reads data shown). Every handler has it own definition **HandlerDef** which validates whether associated handler is compatible with the connected VPP. Handler definitions are passed to the VPPTop client as follows:
-
-```
-client.Defs = append(client.Defs, &local.HandlerDef{}, &vpp.HandlerDef{})
-```
-
-In the code above, both handlers are provided which means VPPTop iterates over them until it founds the one suitable for the given VPP. Removing a definition, the handler is excluded.    
-
-[badge-1904]: https://img.shields.io/badge/branch-vpp1904-orange.svg?logo=git&logoColor=white
-[badge-master]: https://img.shields.io/badge/branch-master-blue.svg?logo=git&logoColor=white
-[branch-master]: https://github.com/PANTHEONtech/vpptop/tree/master
-[branch-1904]: https://github.com/PANTHEONtech/vpptop/tree/vpp1904
 [go-download]: https://golang.org/dl/
 [preview]: https://asciinema.org/a/NHODZM2ebcwWFPEEPcja8X19R
 [preview-svg]: https://asciinema.org/a/NHODZM2ebcwWFPEEPcja8X19R.svg
 [stats-guide]: https://wiki.fd.io/view/VPP/Command-line_Arguments#statseg_.7B_..._.7D
-[stats-version-commit]: https://github.com/FDio/vpp/commit/1cb333cdf5ce26557233c5bdb5a18738cb6e1e2c
-[vpp-19.04]: https://packagecloud.io/fdio/1904
-[vpp-21.01]: https://packagecloud.io/fdio/2101
-[vpp-21.06]: https://packagecloud.io/fdio/2106
-[vpp-22.02]: https://packagecloud.io/fdio/2202
-[vpp-agent]: https://github.com/ligato/vpp-agent
 [vpp-install]: https://wiki.fd.io/view/VPP/Installing_VPP_binaries_from_packages
 [wiki-tui]: https://en.wikipedia.org/wiki/Text-based_user_interface
 [wiki-vpp]: https://wiki.fd.io/view/VPP

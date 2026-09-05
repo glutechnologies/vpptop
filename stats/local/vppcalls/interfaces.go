@@ -24,12 +24,12 @@ import (
 	"strings"
 
 	"github.com/glutechnologies/vpptop/stats/api"
-	dhcpapi "github.com/glutechnologies/vpptop/stats/local/binapi/dhcp"
-	interfaces "github.com/glutechnologies/vpptop/stats/local/binapi/interface"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/interface_types"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/ip"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
 	govppapi "go.fd.io/govpp/api"
+	dhcpapi "go.fd.io/govpp/binapi/dhcp"
+	interfaces "go.fd.io/govpp/binapi/interface"
+	"go.fd.io/govpp/binapi/interface_types"
+	"go.fd.io/govpp/binapi/ip"
+	"go.fd.io/govpp/binapi/ip_types"
 )
 
 // InterfaceVppAPI defines interface-specific methods

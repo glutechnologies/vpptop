@@ -116,15 +116,6 @@ type Interface struct {
 	MTU         []uint32
 }
 
-// VPPInfo basic information about the connected VPP
-type VPPInfo struct {
-	Connected   bool
-	VersionInfo VersionInfo
-	SessionInfo SessionInfo
-	Plugins     []PluginInfo
-	Version     string
-}
-
 // VersionInfo is a VPP version
 type VersionInfo struct {
 	Program        string

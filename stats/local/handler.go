@@ -21,16 +21,18 @@ import (
 	"encoding/gob"
 
 	"github.com/glutechnologies/vpptop/stats/api"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/dhcp"
-	interfaces "github.com/glutechnologies/vpptop/stats/local/binapi/interface"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/ip"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/vpe"
 	"github.com/glutechnologies/vpptop/stats/local/vppcalls"
 	govppapi "go.fd.io/govpp/api"
+	"go.fd.io/govpp/binapi/dhcp"
+	interfaces "go.fd.io/govpp/binapi/interface"
+	"go.fd.io/govpp/binapi/ip"
+	"go.fd.io/govpp/binapi/memclnt"
+	"go.fd.io/govpp/binapi/vlib"
+	"go.fd.io/govpp/binapi/vpe"
 )
 
-// GetVersion of the local VPP implementation
-const VPPVersion = "21.01-rc2~2"
+// VPPVersion identifies the VPP API schema bundled with GovPP v0.13.
+const VPPVersion = "25.10"
 
 var localMsgs []govppapi.Message
 
@@ -39,6 +41,8 @@ func init() {
 	msgList = append(msgList, dhcp.AllMessages()...)
 	msgList = append(msgList, interfaces.AllMessages()...)
 	msgList = append(msgList, ip.AllMessages()...)
+	msgList = append(msgList, memclnt.AllMessages()...)
+	msgList = append(msgList, vlib.AllMessages()...)
 	msgList = append(msgList, vpe.AllMessages()...)
 	localMsgs = msgList
 }
@@ -74,9 +78,9 @@ func NewLocalHandler(c *api.VppClient, ch govppapi.Channel, isRemote bool) *Hand
 		}
 	}
 	return &Handler{
-		vppCoreCalls:      vppcalls.NewVppCoreHandler(c.Connection()),
+		vppCoreCalls:      vppcalls.NewVppCoreHandler(ch),
 		interfaceVppCalls: vppcalls.NewInterfaceHandler(ch),
-		telemetryVppCalls: vppcalls.NewTelemetryHandler(c.Connection(), c.Stats()),
+		telemetryVppCalls: vppcalls.NewTelemetryHandler(ch, c.Stats()),
 		apiChan:           ch,
 	}
 }

@@ -24,9 +24,8 @@ import (
 	"strings"
 
 	"github.com/glutechnologies/vpptop/stats/api"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
 	govppapi "go.fd.io/govpp/api"
-	telemetrycalls "go.ligato.io/vpp-agent/v3/plugins/telemetry/vppcalls"
+	"go.fd.io/govpp/binapi/vlib"
 )
 
 // TelemetryVppAPI defines telemetry-specific methods
@@ -39,15 +38,15 @@ type TelemetryVppAPI interface {
 
 // TelemetryHandler implements TelemetryVppAPI
 type TelemetryHandler struct {
-	sp      govppapi.StatsProvider
-	vlibRpc vlib.RPCService
+	sp govppapi.StatsProvider
+	ch govppapi.Channel
 }
 
 // NewTelemetryHandler returns a new instance of the TelemetryVppAPI
-func NewTelemetryHandler(conn govppapi.Connection, sp govppapi.StatsProvider) TelemetryVppAPI {
+func NewTelemetryHandler(ch govppapi.Channel, sp govppapi.StatsProvider) TelemetryVppAPI {
 	return &TelemetryHandler{
-		vlibRpc: vlib.NewServiceClient(conn),
-		sp:      sp,
+		ch: ch,
+		sp: sp,
 	}
 }
 
@@ -59,8 +58,35 @@ var (
 		`\s+Name\s+State\s+Calls\s+Vectors\s+Suspends\s+Clocks\s+Vectors/Call\s+` +
 		`((?:\S+\s+\w+(?:[ -]\w+)*\s+\d+\s+\d+\s+\d+\s+[0-9\.e-]+\s+[0-9\.e-]+\s+)+)`)
 	// 'show runtime' items
-	runtimeItemsRe = regexp.MustCompile(`(\S+)\s+(\w+(?:[ -]\w+)*)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9.e-]+)\s+([0-9.e-]+)\s+`)
+	runtimeItemsRe         = regexp.MustCompile(`(\S+)\s+(\w+(?:[ -]\w+)*)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9.e-]+)\s+([0-9.e-]+)\s+`)
+	errorNameLikeMemifRe   = regexp.MustCompile(`^[A-Za-z0-9-]+([0-9]+/[0-9]+|pg/stream)`)
+	errorNameLikeGigabitRe = regexp.MustCompile(`^[A-Za-z0-9]+[0-9a-f]+(/[0-9a-f]+){2}`)
 )
+
+func splitErrorName(name string) (node, reason string) {
+	parts := strings.Split(name, "/")
+	switch len(parts) {
+	case 1:
+		return parts[0], ""
+	case 2:
+		return parts[0], parts[1]
+	case 3:
+		if strings.Contains(parts[1], " ") {
+			return parts[0], strings.Join(parts[1:], "/")
+		}
+		if errorNameLikeMemifRe.MatchString(name) {
+			return strings.Join(parts[:2], "/"), parts[2]
+		}
+	default:
+		if strings.Contains(parts[2], " ") {
+			return strings.Join(parts[:2], "/"), strings.Join(parts[2:], "/")
+		}
+		if errorNameLikeGigabitRe.MatchString(name) {
+			return strings.Join(parts[:3], "/"), strings.Join(parts[3:], "/")
+		}
+	}
+	return strings.Join(parts[:len(parts)-1], "/"), parts[len(parts)-1]
+}
 
 func (h *TelemetryHandler) GetInterfaceStats(context.Context) (*govppapi.InterfaceStats, error) {
 	ifStats := &govppapi.InterfaceStats{}
@@ -72,9 +98,8 @@ func (h *TelemetryHandler) GetInterfaceStats(context.Context) (*govppapi.Interfa
 }
 
 func (h *TelemetryHandler) GetNodeCounters(ctx context.Context) (*api.NodeCounterInfo, error) {
-	data, err := h.vlibRpc.CliInband(ctx, &vlib.CliInband{
-		Cmd: "show node counters",
-	})
+	data := new(vlib.CliInbandReply)
+	err := h.ch.SendRequest(&vlib.CliInband{Cmd: "show node counters"}).ReceiveReply(data)
 	if err == nil {
 		if counters, parseErr := parseNodeCounters(data.Reply); parseErr == nil {
 			return &api.NodeCounterInfo{Counters: counters}, nil
@@ -150,7 +175,7 @@ func (h *TelemetryHandler) getNodeCountersFromStats() ([]api.NodeCounter, error)
 
 	counters := make([]api.NodeCounter, 0, len(errorStats.Errors))
 	for _, counter := range errorStats.Errors {
-		node, reason := telemetrycalls.SplitErrorName(counter.CounterName)
+		node, reason := splitErrorName(counter.CounterName)
 		var count uint64
 		for _, workerCount := range counter.Values {
 			count += workerCount
@@ -166,9 +191,8 @@ func (h *TelemetryHandler) getNodeCountersFromStats() ([]api.NodeCounter, error)
 }
 
 func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo, error) {
-	cliResp, err := h.vlibRpc.CliInband(ctx, &vlib.CliInband{
-		Cmd: "show runtime",
-	})
+	cliResp := new(vlib.CliInbandReply)
+	err := h.ch.SendRequest(&vlib.CliInband{Cmd: "show runtime"}).ReceiveReply(cliResp)
 	if err == nil {
 		if runtimeInfo, parseErr := parseRuntimeInfo(cliResp.Reply); parseErr == nil {
 			return runtimeInfo, nil
@@ -265,8 +289,8 @@ func (h *TelemetryHandler) getRuntimeInfoFromStats() (*api.RuntimeInfo, error) {
 }
 
 func (h *TelemetryHandler) GetThreads(ctx context.Context) ([]api.ThreadData, error) {
-	threads, err := h.vlibRpc.ShowThreads(ctx, new(vlib.ShowThreads))
-	if err != nil {
+	threads := new(vlib.ShowThreadsReply)
+	if err := h.ch.SendRequest(new(vlib.ShowThreads)).ReceiveReply(threads); err != nil {
 		return nil, fmt.Errorf("show threads error: %v", err)
 	}
 

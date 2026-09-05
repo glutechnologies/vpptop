@@ -86,6 +86,28 @@ func TestGetNodeCountersFromStats(t *testing.T) {
 	}
 }
 
+func TestSplitErrorName(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		node   string
+		reason string
+	}{
+		{name: "basic", input: "ipsec-input-ip4/IPSEC pkts received", node: "ipsec-input-ip4", reason: "IPSEC pkts received"},
+		{name: "interface", input: "memif1/1001-output/interface is down", node: "memif1/1001-output", reason: "interface is down"},
+		{name: "reason slash", input: "tcp6-input/inconsistent ip/tcp lengths", node: "tcp6-input", reason: "inconsistent ip/tcp lengths"},
+		{name: "many slashes", input: "memif1/1001-output/Unrecognized / unknown chunk or chunk-state mismatch", node: "memif1/1001-output", reason: "Unrecognized / unknown chunk or chunk-state mismatch"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			node, reason := splitErrorName(test.input)
+			if node != test.node || reason != test.reason {
+				t.Fatalf("splitErrorName(%q) = (%q, %q), want (%q, %q)", test.input, node, reason, test.node, test.reason)
+			}
+		})
+	}
+}
+
 func TestParseRuntimeInfoIncludesInterfaceNodes(t *testing.T) {
 	output := `Time 1.0, 10 sec internal node vector rate 2.0 loops/sec 3.0
   vector rates in 4.0, out 5.0, drop 6.0, punt 7.0

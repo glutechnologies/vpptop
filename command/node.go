@@ -28,7 +28,6 @@ import (
 	"go.fd.io/govpp/adapter/socketclient"
 	"go.fd.io/govpp/adapter/statsclient"
 	"go.fd.io/govpp/proxy"
-	"go.ligato.io/cn-infra/v2/logging"
 )
 
 var nodeCmd = &cobra.Command{
@@ -45,8 +44,6 @@ var nodeCmd = &cobra.Command{
 		}
 
 		defer logs.Close()
-
-		logging.DefaultLogger.SetOutput(logs)
 
 		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
 		if err != nil {

@@ -50,7 +50,7 @@ const (
 )
 
 // VPP API handler definition list determines supported versions
-// - VPPs supported by Ligato VPP-Agent
+// - VPPs supported by the configured GovPP handler definitions
 // - VPPs supported by the local implementation
 var Defs []api.HandlerDef
 

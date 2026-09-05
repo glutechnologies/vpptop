@@ -20,10 +20,9 @@ import (
 	"github.com/glutechnologies/vpptop/client"
 	"github.com/glutechnologies/vpptop/command"
 	"github.com/glutechnologies/vpptop/stats/local"
-	"github.com/glutechnologies/vpptop/stats/vpp"
 )
 
 func main() {
-	client.Defs = append(client.Defs, &local.HandlerDef{}, &vpp.HandlerDef{})
+	client.Defs = append(client.Defs, &local.HandlerDef{})
 	command.Execute()
 }

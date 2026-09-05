@@ -17,22 +17,16 @@
 package api
 
 import (
-	"context"
-	"errors"
-
 	govppapi "go.fd.io/govpp/api"
 	"go.fd.io/govpp/core"
 	"go.fd.io/govpp/proxy"
-	"go.ligato.io/vpp-agent/v3/plugins/vpp"
 )
 
-// VppClient implements VPP-Agent client interface
+// VppClient wraps local and remote GovPP clients.
 type VppClient struct {
 	vppConn   *core.Connection
 	statsConn govppapi.StatsProvider
 	client    *proxy.Client
-	vppInfo   VPPInfo
-	apiChan   govppapi.Channel
 }
 
 // NewVppClient returns VPP client connected to the VPP via the shared memory
@@ -58,71 +52,13 @@ func (c VppClient) NewAPIChannel() (govppapi.Channel, error) {
 	return c.vppConn.NewAPIChannel()
 }
 
-func (c *VppClient) CheckCompatiblity(msgs ...govppapi.Message) error {
-	if c.apiChan == nil {
-		ch, err := c.NewAPIChannel()
-		if err != nil {
-			return err
-		}
-		c.apiChan = ch
-	}
-	return c.apiChan.CheckCompatiblity(msgs...)
-}
-
-func (c VppClient) NewStream(ctx context.Context, options ...govppapi.StreamOption) (govppapi.Stream, error) {
-	return c.vppConn.NewStream(ctx, options...)
-}
-
-func (c VppClient) Invoke(ctx context.Context, req govppapi.Message, reply govppapi.Message) error {
-	return c.vppConn.Invoke(ctx, req, reply)
-}
-
-func (c VppClient) WatchEvent(ctx context.Context, event govppapi.Message) (govppapi.Watcher, error) {
-	if c.vppConn == nil {
-		return nil, errors.New("event watching is unavailable for proxy clients")
-	}
-	return c.vppConn.WatchEvent(ctx, event)
-}
-
 func (c *VppClient) Stats() govppapi.StatsProvider {
 	return c.statsConn
-}
-
-func (c *VppClient) IsPluginLoaded(plugin string) bool {
-	for _, p := range c.vppInfo.Plugins {
-		if p.Name == plugin {
-			return true
-		}
-	}
-	return false
-}
-
-func (c *VppClient) BinapiVersion() vpp.Version {
-	return vpp.Version(c.vppInfo.Version)
-}
-
-func (c *VppClient) OnReconnect(_ func()) {
-	// no-op
-}
-
-func (c *VppClient) Connection() govppapi.Connection {
-	return c.vppConn
-}
-
-// SetInfo about the connected VPP
-func (c *VppClient) SetInfo(vppInfo VPPInfo) {
-	c.vppInfo = vppInfo
 }
 
 // Disconnect from the VPP
 func (c *VppClient) Disconnect() {
 	if c.vppConn != nil {
 		c.vppConn.Disconnect()
-	}
-}
-
-func (c *VppClient) Close() {
-	if c.apiChan != nil {
-		c.apiChan.Close()
 	}
 }

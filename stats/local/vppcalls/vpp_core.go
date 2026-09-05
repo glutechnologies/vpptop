@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	"github.com/glutechnologies/vpptop/stats/api"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/memclnt"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
-	"github.com/glutechnologies/vpptop/stats/local/binapi/vpe"
 	"github.com/sirupsen/logrus"
 	govppapi "go.fd.io/govpp/api"
+	"go.fd.io/govpp/binapi/memclnt"
+	"go.fd.io/govpp/binapi/vlib"
+	"go.fd.io/govpp/binapi/vpe"
 )
 
 // VppCoreAPI defines vpe-specific methods
@@ -39,26 +39,17 @@ type VppCoreAPI interface {
 
 // VppCoreHandler implements VppCoreAPI
 type VppCoreHandler struct {
-	vpeRpc     vpe.RPCService
-	vlibRpc    vlib.RPCService
-	memclntRpc memclnt.RPCService
+	ch govppapi.Channel
 }
 
 // NewVppCoreHandler returns a new instance of the VppCoreAPI
-func NewVppCoreHandler(conn govppapi.Connection) VppCoreAPI {
-	h := &VppCoreHandler{
-		vpeRpc:     vpe.NewServiceClient(conn),
-		vlibRpc:    vlib.NewServiceClient(conn),
-		memclntRpc: memclnt.NewServiceClient(conn),
-	}
-	return h
+func NewVppCoreHandler(ch govppapi.Channel) VppCoreAPI {
+	return &VppCoreHandler{ch: ch}
 }
 
 func (h VppCoreHandler) RunCli(ctx context.Context, cmd string) (string, error) {
-	resp, err := h.vlibRpc.CliInband(ctx, &vlib.CliInband{
-		Cmd: cmd,
-	})
-	if err != nil {
+	resp := new(vlib.CliInbandReply)
+	if err := h.ch.SendRequest(&vlib.CliInband{Cmd: cmd}).ReceiveReply(resp); err != nil {
 		return "", fmt.Errorf("VPP CLI command %s failed: %v", cmd, err)
 	}
 	return resp.Reply, nil
@@ -112,8 +103,8 @@ func (h VppCoreHandler) GetPlugins(ctx context.Context) ([]api.PluginInfo, error
 }
 
 func (h VppCoreHandler) GetVersion(ctx context.Context) (*api.VersionInfo, error) {
-	version, err := h.vpeRpc.ShowVersion(ctx, new(vpe.ShowVersion))
-	if err != nil {
+	version := new(vpe.ShowVersionReply)
+	if err := h.ch.SendRequest(new(vpe.ShowVersion)).ReceiveReply(version); err != nil {
 		return nil, err
 	}
 	info := &api.VersionInfo{
@@ -126,8 +117,8 @@ func (h VppCoreHandler) GetVersion(ctx context.Context) (*api.VersionInfo, error
 }
 
 func (h VppCoreHandler) GetSession(ctx context.Context) (*api.SessionInfo, error) {
-	ctrlPing, err := h.memclntRpc.ControlPing(ctx, new(memclnt.ControlPing))
-	if err != nil {
+	ctrlPing := new(memclnt.ControlPingReply)
+	if err := h.ch.SendRequest(new(memclnt.ControlPing)).ReceiveReply(ctrlPing); err != nil {
 		return nil, fmt.Errorf("control ping error: %v", err)
 	}
 	info := &api.SessionInfo{
@@ -135,8 +126,8 @@ func (h VppCoreHandler) GetSession(ctx context.Context) (*api.SessionInfo, error
 		ClientIdx: ctrlPing.ClientIndex,
 	}
 
-	sysTime, err := h.vpeRpc.ShowVpeSystemTime(ctx, new(vpe.ShowVpeSystemTime))
-	if err != nil {
+	sysTime := new(vpe.ShowVpeSystemTimeReply)
+	if err := h.ch.SendRequest(new(vpe.ShowVpeSystemTime)).ReceiveReply(sysTime); err != nil {
 		logrus.Warnf("system time error: %v", err)
 	} else {
 		info.Uptime = float64(sysTime.VpeSystemTime)

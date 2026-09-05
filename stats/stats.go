@@ -171,27 +171,10 @@ func (p *vppProvider) initConnection(vppConn *core.Connection, statsConn *core.S
 	}
 
 	ctx := context.Background()
-	plugins, err := p.handler.DumpPlugins(ctx)
-	if err != nil {
-		return err
-	}
-
-	session, err := p.handler.DumpSession(ctx)
-	if err != nil {
-		return err
-	}
-
 	p.vppVersion, err = p.handler.DumpVersion(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get vpp version: %v", err)
 	}
-
-	p.vppClient.SetInfo(api.VPPInfo{
-		Connected:   true,
-		VersionInfo: *p.vppVersion,
-		SessionInfo: *session,
-		Plugins:     plugins,
-	})
 
 	return nil
 }
@@ -241,40 +224,22 @@ func (p *vppProvider) ConnectRemote(rAddr string) error {
 	}
 
 	ctx := context.Background()
-
-	plugins, err := p.handler.DumpPlugins(ctx)
-	if err != nil {
-		return err
-	}
-
-	session, err := p.handler.DumpSession(ctx)
-	if err != nil {
-		return err
-	}
-
 	p.vppVersion, err = p.handler.DumpVersion(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get vpp version: %v", err)
 	}
-
-	p.vppClient.SetInfo(api.VPPInfo{
-		Connected:   true,
-		VersionInfo: *p.vppVersion,
-		SessionInfo: *session,
-		Plugins:     plugins,
-		Version:     binapiVersion,
-	})
 
 	return nil
 }
 
 // Disconnect should be called after Connect, if the connection is no longer needed.
 func (p *vppProvider) Disconnect() {
-	p.cancel()
+	if p.cancel != nil {
+		p.cancel()
+	}
 	p.handler.Close()
 	if p.vppClient != nil {
 		p.vppClient.Disconnect()
-		p.vppClient.Close()
 	}
 
 	if p.statsClient != nil {
