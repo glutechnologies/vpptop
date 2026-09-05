@@ -14,9 +14,9 @@ package mfib_types
 import (
 	"strconv"
 
-	api "git.fd.io/govpp.git/api"
 	fib_types "github.com/glutechnologies/vpptop/stats/local/binapi/fib_types"
 	_ "github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
+	api "go.fd.io/govpp/api"
 )
 
 // This is a compile-time assertion to ensure that this generated file

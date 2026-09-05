@@ -25,12 +25,12 @@ import (
 	"sync"
 	"time"
 
-	"git.fd.io/govpp.git/core"
 	"github.com/glutechnologies/vpptop/gui"
 	"github.com/glutechnologies/vpptop/gui/views"
 	"github.com/glutechnologies/vpptop/gui/xtui"
 	"github.com/glutechnologies/vpptop/stats"
 	"github.com/glutechnologies/vpptop/stats/api"
+	"go.fd.io/govpp/core"
 )
 
 // Index for each TableView. (total of 5 tabs)

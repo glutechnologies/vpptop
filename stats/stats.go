@@ -27,14 +27,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.fd.io/govpp.git"
-	"git.fd.io/govpp.git/adapter"
-	"git.fd.io/govpp.git/adapter/statsclient"
-	govppapi "git.fd.io/govpp.git/api"
-	"git.fd.io/govpp.git/core"
-	"git.fd.io/govpp.git/proxy"
 	"github.com/glutechnologies/vpptop/stats/api"
 	"github.com/sirupsen/logrus"
+	"go.fd.io/govpp"
+	"go.fd.io/govpp/adapter"
+	"go.fd.io/govpp/adapter/statsclient"
+	govppapi "go.fd.io/govpp/api"
+	"go.fd.io/govpp/core"
+	"go.fd.io/govpp/proxy"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 
-	api "git.fd.io/govpp.git/api"
 	memclnt "github.com/glutechnologies/vpptop/stats/local/binapi/memclnt"
+	api "go.fd.io/govpp/api"
 )
 
 // RPCService defines RPC service vpe.

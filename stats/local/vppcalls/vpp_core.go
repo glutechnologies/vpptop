@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"strings"
 
-	govppapi "git.fd.io/govpp.git/api"
 	"github.com/glutechnologies/vpptop/stats/api"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/memclnt"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/vpe"
-	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
+	govppapi "go.fd.io/govpp/api"
 )
 
 // VppCoreAPI defines vpe-specific methods
@@ -137,7 +137,7 @@ func (h VppCoreHandler) GetSession(ctx context.Context) (*api.SessionInfo, error
 
 	sysTime, err := h.vpeRpc.ShowVpeSystemTime(ctx, new(vpe.ShowVpeSystemTime))
 	if err != nil {
-		log.Warn("system time error: %v", err)
+		logrus.Warnf("system time error: %v", err)
 	} else {
 		info.Uptime = float64(sysTime.VpeSystemTime)
 	}

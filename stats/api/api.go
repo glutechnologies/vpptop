@@ -18,8 +18,8 @@ package api
 
 import (
 	"context"
-	govppapi "git.fd.io/govpp.git/api"
-	"git.fd.io/govpp.git/core"
+	govppapi "go.fd.io/govpp/api"
+	"go.fd.io/govpp/core"
 )
 
 // VppProviderAPI uses VPPTop app to manage VPP connection and retrieve

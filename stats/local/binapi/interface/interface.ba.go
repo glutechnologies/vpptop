@@ -11,11 +11,11 @@
 package interfaces
 
 import (
-	api "git.fd.io/govpp.git/api"
-	codec "git.fd.io/govpp.git/codec"
 	ethernet_types "github.com/glutechnologies/vpptop/stats/local/binapi/ethernet_types"
 	interface_types "github.com/glutechnologies/vpptop/stats/local/binapi/interface_types"
 	ip_types "github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
+	api "go.fd.io/govpp/api"
+	codec "go.fd.io/govpp/codec"
 )
 
 // This is a compile-time assertion to ensure that this generated file

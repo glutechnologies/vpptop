@@ -18,9 +18,11 @@ package api
 
 import (
 	"context"
-	govppapi "git.fd.io/govpp.git/api"
-	"git.fd.io/govpp.git/core"
-	"git.fd.io/govpp.git/proxy"
+	"errors"
+
+	govppapi "go.fd.io/govpp/api"
+	"go.fd.io/govpp/core"
+	"go.fd.io/govpp/proxy"
 	"go.ligato.io/vpp-agent/v3/plugins/vpp"
 )
 
@@ -73,6 +75,13 @@ func (c VppClient) NewStream(ctx context.Context, options ...govppapi.StreamOpti
 
 func (c VppClient) Invoke(ctx context.Context, req govppapi.Message, reply govppapi.Message) error {
 	return c.vppConn.Invoke(ctx, req, reply)
+}
+
+func (c VppClient) WatchEvent(ctx context.Context, event govppapi.Message) (govppapi.Watcher, error) {
+	if c.vppConn == nil {
+		return nil, errors.New("event watching is unavailable for proxy clients")
+	}
+	return c.vppConn.WatchEvent(ctx, event)
 }
 
 func (c *VppClient) Stats() govppapi.StatsProvider {

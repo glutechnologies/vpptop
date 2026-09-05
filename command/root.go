@@ -18,8 +18,8 @@ package command
 
 import (
 	"fmt"
-	"git.fd.io/govpp.git/adapter"
 	"github.com/spf13/cobra"
+	"go.fd.io/govpp/adapter"
 	"log"
 	"os"
 )

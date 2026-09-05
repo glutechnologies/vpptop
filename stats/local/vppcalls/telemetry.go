@@ -23,10 +23,9 @@ import (
 	"strconv"
 	"strings"
 
-	govppapi "git.fd.io/govpp.git/api"
 	"github.com/glutechnologies/vpptop/stats/api"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
-	"github.com/pkg/errors"
+	govppapi "go.fd.io/govpp/api"
 	telemetrycalls "go.ligato.io/vpp-agent/v3/plugins/telemetry/vppcalls"
 )
 
@@ -83,7 +82,7 @@ func (h *TelemetryHandler) GetNodeCounters(ctx context.Context) (*api.NodeCounte
 			err = parseErr
 		}
 	} else {
-		err = errors.Wrap(err, "VPP CLI command \"show node counters\" failed")
+		err = fmt.Errorf("VPP CLI command \"show node counters\" failed: %w", err)
 	}
 
 	// cli_inband returns the complete command output in one binary API message.
@@ -177,7 +176,7 @@ func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo
 			err = parseErr
 		}
 	} else {
-		err = errors.Wrap(err, "VPP CLI command \"show runtime\" failed")
+		err = fmt.Errorf("VPP CLI command \"show runtime\" failed: %w", err)
 	}
 
 	// The stats segment is not constrained by a single CLI response and returns

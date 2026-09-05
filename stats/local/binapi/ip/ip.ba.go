@@ -15,13 +15,13 @@ package ip
 import (
 	"strconv"
 
-	api "git.fd.io/govpp.git/api"
-	codec "git.fd.io/govpp.git/codec"
 	_ "github.com/glutechnologies/vpptop/stats/local/binapi/ethernet_types"
 	fib_types "github.com/glutechnologies/vpptop/stats/local/binapi/fib_types"
 	interface_types "github.com/glutechnologies/vpptop/stats/local/binapi/interface_types"
 	ip_types "github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
 	mfib_types "github.com/glutechnologies/vpptop/stats/local/binapi/mfib_types"
+	api "go.fd.io/govpp/api"
+	codec "go.fd.io/govpp/codec"
 )
 
 // This is a compile-time assertion to ensure that this generated file

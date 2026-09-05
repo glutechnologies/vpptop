@@ -23,13 +23,13 @@ import (
 	"net"
 	"strings"
 
-	govppapi "git.fd.io/govpp.git/api"
 	"github.com/glutechnologies/vpptop/stats/api"
 	dhcpapi "github.com/glutechnologies/vpptop/stats/local/binapi/dhcp"
 	interfaces "github.com/glutechnologies/vpptop/stats/local/binapi/interface"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/interface_types"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/ip"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
+	govppapi "go.fd.io/govpp/api"
 )
 
 // InterfaceVppAPI defines interface-specific methods

@@ -24,10 +24,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"git.fd.io/govpp.git/adapter/socketclient"
-	"git.fd.io/govpp.git/adapter/statsclient"
-	"git.fd.io/govpp.git/proxy"
 	"github.com/spf13/cobra"
+	"go.fd.io/govpp/adapter/socketclient"
+	"go.fd.io/govpp/adapter/statsclient"
+	"go.fd.io/govpp/proxy"
 	"go.ligato.io/cn-infra/v2/logging"
 )
 

@@ -20,13 +20,13 @@ import (
 	"context"
 	"encoding/gob"
 
-	govppapi "git.fd.io/govpp.git/api"
 	"github.com/glutechnologies/vpptop/stats/api"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/dhcp"
 	interfaces "github.com/glutechnologies/vpptop/stats/local/binapi/interface"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/ip"
 	"github.com/glutechnologies/vpptop/stats/local/binapi/vpe"
 	"github.com/glutechnologies/vpptop/stats/local/vppcalls"
+	govppapi "go.fd.io/govpp/api"
 )
 
 // GetVersion of the local VPP implementation
