@@ -71,9 +71,9 @@ To install VPPTop run:
 
 ```shell
 # install latest release version of vpptop
-go install go.pantheon.tech/vpptop@latest
+go install github.com/glutechnologies/vpptop@latest
 # install master branch version of vpptop
-go install go.pantheon.tech/vpptop@master
+go install github.com/glutechnologies/vpptop@master
 ```
 
 ### Run

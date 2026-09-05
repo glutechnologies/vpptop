@@ -17,10 +17,10 @@
 package main
 
 import (
-	"go.pantheon.tech/vpptop/client"
-	"go.pantheon.tech/vpptop/command"
-	"go.pantheon.tech/vpptop/stats/local"
-	"go.pantheon.tech/vpptop/stats/vpp"
+	"github.com/glutechnologies/vpptop/client"
+	"github.com/glutechnologies/vpptop/command"
+	"github.com/glutechnologies/vpptop/stats/local"
+	"github.com/glutechnologies/vpptop/stats/vpp"
 )
 
 func main() {

@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/glutechnologies/vpptop/stats/api"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/memclnt"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/vpe"
 	"github.com/prometheus/common/log"
-	"go.pantheon.tech/vpptop/stats/api"
-	"go.pantheon.tech/vpptop/stats/local/binapi/memclnt"
-	"go.pantheon.tech/vpptop/stats/local/binapi/vlib"
-	"go.pantheon.tech/vpptop/stats/local/binapi/vpe"
 )
 
 // VppCoreAPI defines vpe-specific methods

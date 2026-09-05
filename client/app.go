@@ -26,11 +26,11 @@ import (
 	"time"
 
 	"git.fd.io/govpp.git/core"
-	"go.pantheon.tech/vpptop/gui"
-	"go.pantheon.tech/vpptop/gui/views"
-	"go.pantheon.tech/vpptop/gui/xtui"
-	"go.pantheon.tech/vpptop/stats"
-	"go.pantheon.tech/vpptop/stats/api"
+	"github.com/glutechnologies/vpptop/gui"
+	"github.com/glutechnologies/vpptop/gui/views"
+	"github.com/glutechnologies/vpptop/gui/xtui"
+	"github.com/glutechnologies/vpptop/stats"
+	"github.com/glutechnologies/vpptop/stats/api"
 )
 
 // Index for each TableView. (total of 5 tabs)

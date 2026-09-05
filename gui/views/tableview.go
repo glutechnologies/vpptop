@@ -17,9 +17,9 @@
 package views
 
 import (
-	"go.pantheon.tech/vpptop/gui"
-	"go.pantheon.tech/vpptop/gui/xtui"
 	tui "github.com/gizak/termui/v3"
+	"github.com/glutechnologies/vpptop/gui"
+	"github.com/glutechnologies/vpptop/gui/xtui"
 )
 
 const (

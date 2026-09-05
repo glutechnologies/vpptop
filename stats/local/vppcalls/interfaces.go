@@ -24,12 +24,12 @@ import (
 	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
-	"go.pantheon.tech/vpptop/stats/api"
-	dhcpapi "go.pantheon.tech/vpptop/stats/local/binapi/dhcp"
-	interfaces "go.pantheon.tech/vpptop/stats/local/binapi/interface"
-	"go.pantheon.tech/vpptop/stats/local/binapi/interface_types"
-	"go.pantheon.tech/vpptop/stats/local/binapi/ip"
-	"go.pantheon.tech/vpptop/stats/local/binapi/ip_types"
+	"github.com/glutechnologies/vpptop/stats/api"
+	dhcpapi "github.com/glutechnologies/vpptop/stats/local/binapi/dhcp"
+	interfaces "github.com/glutechnologies/vpptop/stats/local/binapi/interface"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/interface_types"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/ip"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/ip_types"
 )
 
 // InterfaceVppAPI defines interface-specific methods

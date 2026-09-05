@@ -3,7 +3,7 @@ package client
 import (
 	"testing"
 
-	"go.pantheon.tech/vpptop/stats/api"
+	"github.com/glutechnologies/vpptop/stats/api"
 )
 
 func TestFormatErrorsPreservesReason(t *testing.T) {

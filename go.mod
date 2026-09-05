@@ -1,4 +1,4 @@
-module go.pantheon.tech/vpptop
+module github.com/glutechnologies/vpptop
 
 go 1.24.0
 

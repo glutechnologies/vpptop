@@ -24,10 +24,10 @@ import (
 	"strings"
 
 	govppapi "git.fd.io/govpp.git/api"
+	"github.com/glutechnologies/vpptop/stats/api"
+	"github.com/glutechnologies/vpptop/stats/local/binapi/vlib"
 	"github.com/pkg/errors"
 	telemetrycalls "go.ligato.io/vpp-agent/v3/plugins/telemetry/vppcalls"
-	"go.pantheon.tech/vpptop/stats/api"
-	"go.pantheon.tech/vpptop/stats/local/binapi/vlib"
 )
 
 // TelemetryVppAPI defines telemetry-specific methods

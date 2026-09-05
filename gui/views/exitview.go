@@ -17,9 +17,9 @@
 package views
 
 import (
-	"go.pantheon.tech/vpptop/gui"
 	tui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
+	"github.com/glutechnologies/vpptop/gui"
 )
 
 // exitView represents a view that is rendered on gui exit.
@@ -59,7 +59,7 @@ func NewExitView() *exitView {
 func (v *exitView) Widgets() []tui.Drawable { return []tui.Drawable{v.exitScreen} }
 
 // These functions do nothing.
-func (v *exitView) Update(interface{})            {}
-func (v *exitView) ItemsList() []string           { return nil }
-func (v *exitView) Filter(gui.Event)              {}
+func (v *exitView) Update(interface{})        {}
+func (v *exitView) ItemsList() []string       { return nil }
+func (v *exitView) Filter(gui.Event)          {}
 func (v *exitView) OnScrollEvent(_ gui.Event) {}
