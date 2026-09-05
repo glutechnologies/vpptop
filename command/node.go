@@ -17,112 +17,41 @@
 package command
 
 import (
-	"errors"
 	"fmt"
-	"log"
+	"net"
 	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/spf13/cobra"
-	"go.fd.io/govpp/adapter/socketclient"
-	"go.fd.io/govpp/adapter/statsclient"
-	"go.fd.io/govpp/proxy"
 )
 
 var nodeCmd = &cobra.Command{
-	Use:   "node <nodeName>",
-	Short: "Collects vpp statistics from the specified node",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return errors.New("no node specified")
+	Use:   "node <ip-address>",
+	Short: "Collect VPP statistics from a remote IP address",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(_ *cobra.Command, args []string) error {
+		address, err := remoteNodeAddress(args[0])
+		if err != nil {
+			return err
 		}
 
 		logs, err := os.Create("remote.log")
 		if err != nil {
-			return fmt.Errorf("error occured while creating file: %v", err)
+			return fmt.Errorf("error occurred while creating file: %v", err)
 		}
-
 		defer logs.Close()
 
-		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
-		if err != nil {
-			return err
-		}
-
-		ipaddr, found := resolveNode(kubeconfig, args[0])
-		if found {
-			return startClient("", ipaddr+":"+"7878", logs)
-		}
-
-		log.Println("failed to resolve addr:", args[0])
-
-		rAddr, err := cmd.Flags().GetString("addr")
-		if err != nil {
-			return err
-		}
-
-		log.Println("trying to connect to a local server at:", rAddr)
-
-		for i := 0; i < 3; i++ {
-			if _, err = proxy.Connect(rAddr); err == nil {
-				break
-			}
-			time.Sleep(1 * time.Second)
-		}
-
-		if err != nil {
-			log.Println("no server found")
-			log.Println("starting local server at:", rAddr)
-
-			binapiSocket, err := cmd.Flags().GetString("binapi-socket")
-			if err != nil {
-				return err
-			}
-
-			statsSocket, err := cmd.Flags().GetString("stats-socket")
-			if err != nil {
-				return err
-			}
-
-			go func() {
-				p, err := proxy.NewServer()
-				if err != nil {
-					log.Fatalln("creating local server failed")
-				}
-
-				statsAdapter := statsclient.NewStatsClient(statsSocket)
-				binapiAdapter := socketclient.NewVppClient(binapiSocket)
-
-				if err := p.ConnectStats(statsAdapter); err != nil {
-					log.Fatalln("connecting to stats failed:", err)
-				}
-
-				defer p.DisconnectStats()
-
-				if err := p.ConnectBinapi(binapiAdapter); err != nil {
-					log.Fatalln("connecting to binapi failed:", err)
-				}
-
-				defer p.DisconnectBinapi()
-
-				p.ListenAndServe(rAddr)
-			}()
-		}
-
-		return startClient("", rAddr, logs)
+		return startClient("", address, logs)
 	},
 }
 
-func init() {
-	if home := homeDir(); home != "" {
-		nodeCmd.Flags().StringP("kubeconfig", "c", filepath.Join(home, ".kube", "config"), "(optional) absolute path to kubeconfig")
-	} else {
-		nodeCmd.Flags().StringP("kubeconfig", "c", "", "absolute path to the kubeconfig")
+func remoteNodeAddress(value string) (string, error) {
+	ip := net.ParseIP(value)
+	if ip == nil {
+		return "", fmt.Errorf("invalid node IP address %q", value)
 	}
+	return net.JoinHostPort(ip.String(), "7878"), nil
+}
 
-	nodeCmd.Flags().String("binapi-socket", socketclient.DefaultSocketName, "Path to VPP binapi socket")
-	nodeCmd.Flags().String("stats-socket", statsclient.DefaultSocketName, "Path to VPP stats socket")
-	nodeCmd.Flags().String("addr", ":9191", "Address on which proxy serves RPC.")
+func init() {
 	rootCmd.AddCommand(nodeCmd)
 }

@@ -74,6 +74,19 @@ To start VPPTop run:
 sudo -E vpptop
 ```
 
+### Remote nodes
+
+Connect to a GovPP proxy on a remote node by passing its IP address:
+
+```shell
+vpptop node 192.0.2.10
+```
+
+The proxy must listen on TCP port `7878`. Kubernetes discovery has been
+removed: vpptop no longer reads kubeconfig files or resolves Kubernetes node
+names, and the `--kubeconfig` option is no longer available. IPv4 and IPv6
+addresses are accepted.
+
 In case you have cloned the repository, use can use `make` to build or install binaries:
 ```shell
 make build
