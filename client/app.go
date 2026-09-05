@@ -442,6 +442,32 @@ func formatBitRate(bytesPerSecond uint64) string {
 	}
 }
 
+func formatPacketRate(packetsPerSecond uint64) string {
+	switch {
+	case packetsPerSecond >= 1_000_000:
+		return fmt.Sprintf("%.2f Mpps", float64(packetsPerSecond)/1_000_000)
+	case packetsPerSecond >= 1_000:
+		return fmt.Sprintf("%.2f Kpps", float64(packetsPerSecond)/1_000)
+	default:
+		return fmt.Sprintf("%d pps", packetsPerSecond)
+	}
+}
+
+func formatBytes(byteCount uint64) string {
+	switch {
+	case byteCount >= 1_000_000_000_000:
+		return fmt.Sprintf("%.2f TB", float64(byteCount)/1_000_000_000_000)
+	case byteCount >= 1_000_000_000:
+		return fmt.Sprintf("%.2f GB", float64(byteCount)/1_000_000_000)
+	case byteCount >= 1_000_000:
+		return fmt.Sprintf("%.2f MB", float64(byteCount)/1_000_000)
+	case byteCount >= 1_000:
+		return fmt.Sprintf("%.2f KB", float64(byteCount)/1_000)
+	default:
+		return fmt.Sprintf("%d Bytes", byteCount)
+	}
+}
+
 // formatInterfaces formats interface stats to xtui.TableRows
 func (app *App) formatInterfaces(ifaces []api.Interface) xtui.TableRows {
 	nameToIdx := make(map[string]int)
@@ -479,8 +505,8 @@ func (app *App) formatInterfaces(ifaces []api.Interface) xtui.TableRows {
 			txpps = counterDelta(iface.Tx.Packets, app.ifCache[idx].Tx.Packets)
 		}
 
-		rows[RowsPerIface*i+1] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Packets/s", fmt.Sprint(rxpps), "Packets/s", fmt.Sprint(txpps), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
-		rows[RowsPerIface*i+2] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Bytes", fmt.Sprint(iface.Rx.Bytes), "Bytes", fmt.Sprint(iface.Tx.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
+		rows[RowsPerIface*i+1] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Packets/s", formatPacketRate(rxpps), "Packets/s", formatPacketRate(txpps), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
+		rows[RowsPerIface*i+2] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Bytes", formatBytes(iface.Rx.Bytes), "Bytes", formatBytes(iface.Tx.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+3] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Throughput", formatBitRate(rxBytesPerSecond), "Throughput", formatBitRate(txBytesPerSecond), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+4] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Errors", fmt.Sprint(iface.RxErrors), "Errors", fmt.Sprint(iface.TxErrors), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
 		rows[RowsPerIface*i+5] = []string{xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, "Unicast", fmt.Sprintf("%d/%d", iface.RxUnicast.Packets, iface.RxUnicast.Bytes), "UnicastMiss", fmt.Sprintf("%d/%d", iface.TxUnicast.Packets, iface.TxUnicast.Bytes), xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell, xtui.EmptyCell}
