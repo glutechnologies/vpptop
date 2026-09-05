@@ -25,9 +25,9 @@ import (
 
 	govppapi "git.fd.io/govpp.git/api"
 	"github.com/pkg/errors"
+	telemetrycalls "go.ligato.io/vpp-agent/v3/plugins/telemetry/vppcalls"
 	"go.pantheon.tech/vpptop/stats/api"
 	"go.pantheon.tech/vpptop/stats/local/binapi/vlib"
-	"go.pantheon.tech/vpptop/stats/local/binapi/vpe"
 )
 
 // TelemetryVppAPI defines telemetry-specific methods
@@ -41,14 +41,12 @@ type TelemetryVppAPI interface {
 // TelemetryHandler implements TelemetryVppAPI
 type TelemetryHandler struct {
 	sp      govppapi.StatsProvider
-	vpeRpc  vpe.RPCService
 	vlibRpc vlib.RPCService
 }
 
 // NewTelemetryHandler returns a new instance of the TelemetryVppAPI
 func NewTelemetryHandler(conn govppapi.Connection, sp govppapi.StatsProvider) TelemetryVppAPI {
 	return &TelemetryHandler{
-		vpeRpc:  vpe.NewServiceClient(conn),
 		vlibRpc: vlib.NewServiceClient(conn),
 		sp:      sp,
 	}
@@ -60,12 +58,9 @@ var (
 	runtimeRe = regexp.MustCompile(`Time ([0-9\.e-]+), ([0-9]+) sec internal node vector rate ([0-9\.e-]+) loops/sec ([0-9\.e-]+)\s+` +
 		`vector rates in ([0-9\.e-]+), out ([0-9\.e-]+), drop ([0-9\.e-]+), punt ([0-9\.e-]+)\n` +
 		`\s+Name\s+State\s+Calls\s+Vectors\s+Suspends\s+Clocks\s+Vectors/Call\s+` +
-		`((?:[\w-:\.]+\s+\w+(?:[ -]\w+)*\s+\d+\s+\d+\s+\d+\s+[0-9\.e-]+\s+[0-9\.e-]+\s+)+)`)
+		`((?:\S+\s+\w+(?:[ -]\w+)*\s+\d+\s+\d+\s+\d+\s+[0-9\.e-]+\s+[0-9\.e-]+\s+)+)`)
 	// 'show runtime' items
-	runtimeItemsRe = regexp.MustCompile(`([\w-:.]+)\s+(\w+(?:[ -]\w+)*)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9.e-]+)\s+([0-9.e-]+)\s+`)
-	// 'show node counters'
-	nodeCountersRe    = regexp.MustCompile(`^\s+(\d+)\s+([\w-/]+)\s+(\w+(?:[ -]\w+)*)\s+(\w+)\s+$`)
-	nodeCountersReOld = regexp.MustCompile(`^\s+(\d+)\s+([\w-/]+)\s+(.+)$`)
+	runtimeItemsRe = regexp.MustCompile(`(\S+)\s+(\w+(?:[ -]\w+)*)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9.e-]+)\s+([0-9.e-]+)\s+`)
 )
 
 func (h *TelemetryHandler) GetInterfaceStats(context.Context) (*govppapi.InterfaceStats, error) {
@@ -78,61 +73,126 @@ func (h *TelemetryHandler) GetInterfaceStats(context.Context) (*govppapi.Interfa
 }
 
 func (h *TelemetryHandler) GetNodeCounters(ctx context.Context) (*api.NodeCounterInfo, error) {
-	var counters []api.NodeCounter
 	data, err := h.vlibRpc.CliInband(ctx, &vlib.CliInband{
 		Cmd: "show node counters",
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "VPP CLI command \"show node counters\" failed")
+	if err == nil {
+		if counters, parseErr := parseNodeCounters(data.Reply); parseErr == nil {
+			return &api.NodeCounterInfo{Counters: counters}, nil
+		} else {
+			err = parseErr
+		}
+	} else {
+		err = errors.Wrap(err, "VPP CLI command \"show node counters\" failed")
 	}
-	for i, line := range strings.Split(data.Reply, "\n") {
+
+	// cli_inband returns the complete command output in one binary API message.
+	// Large error lists can exceed that path's capacity, so use the stats segment
+	// as a fallback. Severity is not exposed there, but the counters remain useful.
+	counters, statsErr := h.getNodeCountersFromStats()
+	if statsErr != nil {
+		return nil, fmt.Errorf("%v; stats API fallback failed: %w", err, statsErr)
+	}
+	return &api.NodeCounterInfo{Counters: counters}, nil
+}
+
+func parseNodeCounters(reply string) ([]api.NodeCounter, error) {
+	var counters []api.NodeCounter
+	headerSeen := false
+	hasSeverity := false
+
+	for _, line := range strings.Split(reply, "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		if i == 0 {
+		if !headerSeen {
 			fields := strings.Fields(line)
 			if (len(fields) == 3 || len(fields) == 4) && fields[0] == "Count" {
+				headerSeen = true
+				hasSeverity = len(fields) == 4
 				continue
 			}
 			return nil, fmt.Errorf("invalid header for `show node counters` received: %q", line)
 		}
-		if matches := nodeCountersRe.FindStringSubmatch(line); len(matches)-1 == 4 {
-			fields := matches[1:]
-			counters = append(counters, api.NodeCounter{
-				Count:    uint64(strToFloat64(fields[0])),
-				Node:     fields[1],
-				Reason:   fields[2],
-				Severity: fields[3],
-			})
-		} else if matches := nodeCountersReOld.FindStringSubmatch(line); len(matches)-1 == 3 {
-			// fallback to older version
-			fields := matches[1:]
 
-			counters = append(counters, api.NodeCounter{
-				Count:    uint64(strToFloat64(fields[0])),
-				Node:     fields[1],
-				Reason:   fields[2],
-				Severity: "unknown",
-			})
-		} else {
+		fields := strings.Fields(line)
+		minimumFields := 3
+		if hasSeverity {
+			minimumFields = 4
+		}
+		if len(fields) < minimumFields {
 			return nil, fmt.Errorf("`show node counters` parsing failed line: %q", line)
 		}
+
+		severity := "unknown"
+		reasonEnd := len(fields)
+		if hasSeverity {
+			severity = fields[len(fields)-1]
+			reasonEnd--
+		}
+		counters = append(counters, api.NodeCounter{
+			Count:    uint64(strToFloat64(fields[0])),
+			Node:     fields[1],
+			Reason:   strings.Join(fields[2:reasonEnd], " "),
+			Severity: severity,
+		})
 	}
-	return &api.NodeCounterInfo{
-		Counters: counters,
-	}, nil
+	if !headerSeen {
+		return nil, fmt.Errorf("invalid empty response for `show node counters`")
+	}
+	return counters, nil
+}
+
+func (h *TelemetryHandler) getNodeCountersFromStats() ([]api.NodeCounter, error) {
+	errorStats := new(govppapi.ErrorStats)
+	if err := h.sp.GetErrorStats(errorStats); err != nil {
+		return nil, err
+	}
+
+	counters := make([]api.NodeCounter, 0, len(errorStats.Errors))
+	for _, counter := range errorStats.Errors {
+		node, reason := telemetrycalls.SplitErrorName(counter.CounterName)
+		var count uint64
+		for _, workerCount := range counter.Values {
+			count += workerCount
+		}
+		counters = append(counters, api.NodeCounter{
+			Count:    count,
+			Node:     node,
+			Reason:   reason,
+			Severity: "unknown",
+		})
+	}
+	return counters, nil
 }
 
 func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo, error) {
 	cliResp, err := h.vlibRpc.CliInband(ctx, &vlib.CliInband{
 		Cmd: "show runtime",
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "VPP CLI command \"show runtime\" failed")
+	if err == nil {
+		if runtimeInfo, parseErr := parseRuntimeInfo(cliResp.Reply); parseErr == nil {
+			return runtimeInfo, nil
+		} else {
+			err = parseErr
+		}
+	} else {
+		err = errors.Wrap(err, "VPP CLI command \"show runtime\" failed")
 	}
-	threadMatches := runtimeRe.FindAllStringSubmatch(cliResp.Reply, -1)
-	if len(threadMatches) == 0 && cliResp.Reply != "" {
-		return nil, fmt.Errorf("invalid command: %q, thread matches: %d", cliResp.Reply, len(threadMatches))
+
+	// The stats segment is not constrained by a single CLI response and returns
+	// every node, aggregated across VPP workers.
+	runtimeInfo, statsErr := h.getRuntimeInfoFromStats()
+	if statsErr != nil {
+		return nil, fmt.Errorf("%v; stats API fallback failed: %w", err, statsErr)
+	}
+	return runtimeInfo, nil
+}
+
+func parseRuntimeInfo(reply string) (*api.RuntimeInfo, error) {
+	threadMatches := runtimeRe.FindAllStringSubmatch(reply, -1)
+	if len(threadMatches) == 0 && reply != "" {
+		return nil, fmt.Errorf("invalid command: %q, thread matches: %d", reply, len(threadMatches))
 	}
 
 	var threads []api.RuntimeThread
@@ -175,6 +235,34 @@ func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo
 	return &api.RuntimeInfo{
 		Threads: threads,
 	}, nil
+}
+
+func (h *TelemetryHandler) getRuntimeInfoFromStats() (*api.RuntimeInfo, error) {
+	nodeStats := new(govppapi.NodeStats)
+	if err := h.sp.GetNodeStats(nodeStats); err != nil {
+		return nil, err
+	}
+
+	thread := api.RuntimeThread{Name: "ALL"}
+	thread.Items = make([]api.RuntimeItem, 0, len(nodeStats.Nodes))
+	for _, node := range nodeStats.Nodes {
+		vectorsPerCall := 0.0
+		if node.Calls != 0 {
+			vectorsPerCall = float64(node.Vectors) / float64(node.Calls)
+		}
+		thread.Items = append(thread.Items, api.RuntimeItem{
+			Index:          uint(node.NodeIndex),
+			Name:           node.NodeName,
+			State:          "unknown",
+			Calls:          node.Calls,
+			Vectors:        node.Vectors,
+			Suspends:       node.Suspends,
+			Clocks:         float64(node.Clocks),
+			VectorsPerCall: vectorsPerCall,
+		})
+	}
+
+	return &api.RuntimeInfo{Threads: []api.RuntimeThread{thread}}, nil
 }
 
 func (h *TelemetryHandler) GetThreads(ctx context.Context) ([]api.ThreadData, error) {

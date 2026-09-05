@@ -383,6 +383,7 @@ func (app *App) updateErrors(ctx context.Context) {
 	errors, err := app.vppProvider.GetErrors(ctx)
 	if err != nil {
 		log.Printf("error occured while polling errors stats: %v\n", err)
+		return
 	}
 
 	app.sortLock.Lock()
@@ -552,7 +553,7 @@ func (app *App) formatErrors(errors []api.Error) xtui.TableRows {
 		if errorC.Severity == "" {
 			errorC.Severity = "unknown"
 		}
-		rows[i] = strings.Split(fmt.Sprintf("%d;%s;%s;%s", errorC.Count, errorC.Node, errorC.Reason, errorC.Severity), ";")
+		rows[i] = []string{fmt.Sprintf("%d", errorC.Count), errorC.Node, errorC.Reason, errorC.Severity}
 	}
 
 	if len(rows) == 0 {

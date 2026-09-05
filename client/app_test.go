@@ -1,6 +1,27 @@
 package client
 
-import "testing"
+import (
+	"testing"
+
+	"go.pantheon.tech/vpptop/stats/api"
+)
+
+func TestFormatErrorsPreservesReason(t *testing.T) {
+	app := new(App)
+	rows := app.formatErrors([]api.Error{{
+		Count:    7,
+		Node:     "ip4-input",
+		Reason:   "invalid length; packet dropped",
+		Severity: "error",
+	}})
+
+	if len(rows) != 1 || len(rows[0]) != 4 {
+		t.Fatalf("formatErrors() returned malformed rows: %#v", rows)
+	}
+	if rows[0][2] != "invalid length; packet dropped" {
+		t.Fatalf("formatErrors() reason = %q, want punctuation preserved", rows[0][2])
+	}
+}
 
 func TestFormatBitRate(t *testing.T) {
 	tests := []struct {
