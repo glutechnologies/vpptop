@@ -53,7 +53,7 @@ func NewTelemetryHandler(ch govppapi.Channel, sp govppapi.StatsProvider) Telemet
 // Regular expressions used to parse telemetry output
 var (
 	// 'show runtime'
-	runtimeRe = regexp.MustCompile(`Time ([0-9\.e-]+), ([0-9]+) sec internal node vector rate ([0-9\.e-]+) loops/sec ([0-9\.e-]+)\s+` +
+	runtimeRe = regexp.MustCompile(`(?:Thread ([0-9]+) (\S+)[^\n]*\n)?Time ([0-9\.e-]+), ([0-9]+) sec internal node vector rate ([0-9\.e-]+) loops/sec ([0-9\.e-]+)\s+` +
 		`vector rates in ([0-9\.e-]+), out ([0-9\.e-]+), drop ([0-9\.e-]+), punt ([0-9\.e-]+)\n` +
 		`\s+Name\s+State\s+Calls\s+Vectors\s+Suspends\s+Clocks\s+Vectors/Call\s+` +
 		`((?:\S+\s+\w+(?:[ -]\w+)*\s+\d+\s+\d+\s+\d+\s+[0-9\.e-]+\s+[0-9\.e-]+\s+)+)`)
@@ -191,11 +191,13 @@ func (h *TelemetryHandler) getNodeCountersFromStats() ([]api.NodeCounter, error)
 }
 
 func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo, error) {
+	// Runtime output retains the thread associated with each node. The stats
+	// segment aggregates workers and therefore cannot populate the Worker column.
 	cliResp := new(vlib.CliInbandReply)
 	err := h.ch.SendRequest(&vlib.CliInband{Cmd: "show runtime"}).ReceiveReply(cliResp)
 	if err == nil {
-		if runtimeInfo, parseErr := parseRuntimeInfo(cliResp.Reply); parseErr == nil {
-			return runtimeInfo, nil
+		if cliRuntimeInfo, parseErr := parseRuntimeInfo(cliResp.Reply); parseErr == nil {
+			return cliRuntimeInfo, nil
 		} else {
 			err = parseErr
 		}
@@ -203,8 +205,7 @@ func (h *TelemetryHandler) GetRuntimeInfo(ctx context.Context) (*api.RuntimeInfo
 		err = fmt.Errorf("VPP CLI command \"show runtime\" failed: %w", err)
 	}
 
-	// The stats segment is not constrained by a single CLI response and returns
-	// every node, aggregated across VPP workers.
+	// Fall back to aggregated stats if the CLI request or parser is unavailable.
 	runtimeInfo, statsErr := h.getRuntimeInfoFromStats()
 	if statsErr != nil {
 		return nil, fmt.Errorf("%v; stats API fallback failed: %w", err, statsErr)
@@ -221,21 +222,23 @@ func parseRuntimeInfo(reply string) (*api.RuntimeInfo, error) {
 	var threads []api.RuntimeThread
 	for _, matches := range threadMatches {
 		fields := matches[1:]
-		if len(fields) != 9 {
+		if len(fields) != 11 {
 			return nil, fmt.Errorf("invalid runtime data for thread (len=%v): %q", len(fields), matches[0])
 		}
 		thread := api.RuntimeThread{
-			Time:               strToFloat64(fields[0]),
-			AvgVectorsPerNode:  strToFloat64(fields[1]),
-			LastMainLoops:      uint64(strToFloat64(fields[2])),
-			VectorsPerMainLoop: strToFloat64(fields[3]),
-			VectorRatesIn:      strToFloat64(fields[4]),
-			VectorRatesOut:     strToFloat64(fields[5]),
-			VectorRatesDrop:    strToFloat64(fields[6]),
-			VectorRatesPunt:    strToFloat64(fields[7]),
+			ID:                 uint(strToFloat64(fields[0])),
+			Name:               fields[1],
+			Time:               strToFloat64(fields[2]),
+			AvgVectorsPerNode:  strToFloat64(fields[3]),
+			LastMainLoops:      uint64(strToFloat64(fields[4])),
+			VectorsPerMainLoop: strToFloat64(fields[5]),
+			VectorRatesIn:      strToFloat64(fields[6]),
+			VectorRatesOut:     strToFloat64(fields[7]),
+			VectorRatesDrop:    strToFloat64(fields[8]),
+			VectorRatesPunt:    strToFloat64(fields[9]),
 		}
 
-		itemMatches := runtimeItemsRe.FindAllStringSubmatch(fields[8], -1)
+		itemMatches := runtimeItemsRe.FindAllStringSubmatch(fields[10], -1)
 		for _, matches := range itemMatches {
 			fields := matches[1:]
 			if len(fields) != 7 {
@@ -264,6 +267,9 @@ func (h *TelemetryHandler) getRuntimeInfoFromStats() (*api.RuntimeInfo, error) {
 	nodeStats := new(govppapi.NodeStats)
 	if err := h.sp.GetNodeStats(nodeStats); err != nil {
 		return nil, err
+	}
+	if len(nodeStats.Nodes) == 0 {
+		return nil, fmt.Errorf("node stats are unavailable")
 	}
 
 	thread := api.RuntimeThread{Name: "ALL"}

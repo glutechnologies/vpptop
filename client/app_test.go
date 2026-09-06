@@ -23,6 +23,25 @@ func TestFormatErrorsPreservesReason(t *testing.T) {
 	}
 }
 
+func TestFormatNodesIncludesWorker(t *testing.T) {
+	app := new(App)
+	rows := app.formatNodes([]api.Node{{
+		Name:           "dpdk-input",
+		Worker:         "vpp_wk_2 (3)",
+		State:          "polling",
+		Calls:          10,
+		Vectors:        20,
+		VectorsPerCall: 2,
+	}})
+
+	if len(rows) != 1 || len(rows[0]) != 8 {
+		t.Fatalf("formatNodes() returned malformed rows: %#v", rows)
+	}
+	if rows[0][1] != "vpp_wk_2 (3)" {
+		t.Fatalf("formatNodes() worker = %q, want %q", rows[0][1], "vpp_wk_2 (3)")
+	}
+}
+
 func TestFormatBitRate(t *testing.T) {
 	tests := []struct {
 		name           string

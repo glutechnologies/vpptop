@@ -109,7 +109,8 @@ func TestSplitErrorName(t *testing.T) {
 }
 
 func TestParseRuntimeInfoIncludesInterfaceNodes(t *testing.T) {
-	output := `Time 1.0, 10 sec internal node vector rate 2.0 loops/sec 3.0
+	output := `Thread 1 vpp_wk_0 (lcore 2)
+Time 1.0, 10 sec internal node vector rate 2.0 loops/sec 3.0
   vector rates in 4.0, out 5.0, drop 6.0, punt 7.0
              Name                 State         Calls          Vectors        Suspends         Clocks       Vectors/Call
 local0-output                     active             1                2               0          1.00            2.00
@@ -123,6 +124,9 @@ GigabitEthernet0/9/0-output       active             4                8         
 	}
 	if len(runtimeInfo.Threads) != 1 || len(runtimeInfo.Threads[0].Items) != 3 {
 		t.Fatalf("parseRuntimeInfo() returned incomplete data: %+v", runtimeInfo.Threads)
+	}
+	if thread := runtimeInfo.Threads[0]; thread.ID != 1 || thread.Name != "vpp_wk_0" {
+		t.Fatalf("runtime thread parsed incorrectly: %+v", thread)
 	}
 	if got := runtimeInfo.Threads[0].Items[2].Name; got != "GigabitEthernet0/9/0-output" {
 		t.Fatalf("last runtime node = %q, want interface node", got)
@@ -146,5 +150,12 @@ func TestGetRuntimeInfoFromStats(t *testing.T) {
 	item := runtimeInfo.Threads[0].Items[0]
 	if item.Name != "GigabitEthernet0/8/0-output" || item.VectorsPerCall != 2.5 || item.State != "unknown" {
 		t.Fatalf("fallback runtime node converted incorrectly: %+v", item)
+	}
+}
+
+func TestGetRuntimeInfoFromStatsRejectsEmptyData(t *testing.T) {
+	handler := &TelemetryHandler{sp: &errorStatsProvider{}}
+	if _, err := handler.getRuntimeInfoFromStats(); err == nil {
+		t.Fatal("getRuntimeInfoFromStats() accepted an empty node list")
 	}
 }

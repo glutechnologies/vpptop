@@ -36,12 +36,19 @@ func (app *App) sortNodeStats(nodeStats []api.Node, field int, ascending bool) {
 			return nodeStats[i].Name > nodeStats[j].Name
 
 		}
-	case NodeStatNodeIndex:
+	case NodeStatNodeWorker:
 		sortFunc = func(i, j int) bool {
 			if ascending {
-				return nodeStats[i].Index < nodeStats[j].Index
+				return nodeStats[i].Worker < nodeStats[j].Worker
 			}
-			return nodeStats[i].Index > nodeStats[j].Index
+			return nodeStats[i].Worker > nodeStats[j].Worker
+		}
+	case NodeStatNodeState:
+		sortFunc = func(i, j int) bool {
+			if ascending {
+				return nodeStats[i].State < nodeStats[j].State
+			}
+			return nodeStats[i].State > nodeStats[j].State
 		}
 	case NodeStatNodeClocks:
 		sortFunc = func(i, j int) bool {

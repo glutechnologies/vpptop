@@ -22,11 +22,12 @@ const NoColumn = -1
 // Mapped node stats fields
 const (
 	NodeStatNodeName = iota
-	NodeStatNodeIndex
-	NodeStatNodeClocks
-	NodeStatNodeVectors
+	NodeStatNodeWorker
+	NodeStatNodeState
 	NodeStatNodeCalls
+	NodeStatNodeVectors
 	NodeStatNodeSuspends
+	NodeStatNodeClocks
 	NodeStatNodeVC
 )
 

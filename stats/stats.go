@@ -281,7 +281,14 @@ func (p *vppProvider) GetNodes(ctx context.Context) ([]api.Node, error) {
 
 	result := make([]api.Node, 0, len(threads[0].Items))
 	for _, thread := range threads {
+		worker := thread.Name
+		if worker == "" {
+			worker = fmt.Sprintf("worker %d", thread.ID)
+		} else if worker != "ALL" {
+			worker = fmt.Sprintf("%s (%d)", worker, thread.ID)
+		}
 		for _, item := range thread.Items {
+			item.Worker = worker
 			result = append(result, item)
 		}
 	}

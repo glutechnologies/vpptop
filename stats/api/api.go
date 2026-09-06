@@ -177,6 +177,7 @@ type RuntimeThread struct {
 type RuntimeItem struct {
 	Index          uint    `json:"index"`
 	Name           string  `json:"name"`
+	Worker         string  `json:"worker"`
 	State          string  `json:"state"`
 	Calls          uint64  `json:"calls"`
 	Vectors        uint64  `json:"vectors"`

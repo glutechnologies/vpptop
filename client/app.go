@@ -153,6 +153,7 @@ func NewApp(lightTheme bool, logFile io.Writer) (*App, error) {
 			views.NewTableView(
 				[]string{
 					"Name",
+					"Worker",
 					"State",
 					"Calls",
 					"Vectors",
@@ -160,10 +161,10 @@ func NewApp(lightTheme bool, logFile io.Writer) (*App, error) {
 					"Clocks",
 					"Vectors/Calls",
 				},
-				xtui.TableRows{{"Name", "State", "Calls", "Vectors", "Suspends", "Clocks", "Vectors/Calls"}},
+				xtui.TableRows{{"Name", "Worker", "State", "Calls", "Vectors", "Suspends", "Clocks", "Vectors/Calls"}},
 				NodeStatNodeName,
 				1,
-				[]int{50, views.Resize, views.Resize, views.Resize, views.Resize, views.Resize, 22},
+				[]int{32, views.Resize, views.Resize, views.Resize, views.Resize, views.Resize, views.Resize, views.Resize},
 				lightTheme,
 			),
 			// errors tab.
@@ -538,7 +539,7 @@ func (app *App) formatNodes(nodes []api.Node) xtui.TableRows {
 	rows := make(xtui.TableRows, len(nodes))
 
 	for i, node := range nodes {
-		rows[i] = strings.Split(fmt.Sprintf("%s %s %d %d %d %d %.2f", node.Name, node.State, node.Calls, node.Vectors, node.Suspends, uint64(node.Clocks), node.VectorsPerCall), " ")
+		rows[i] = []string{node.Name, node.Worker, node.State, fmt.Sprintf("%d", node.Calls), fmt.Sprintf("%d", node.Vectors), fmt.Sprintf("%d", node.Suspends), fmt.Sprintf("%d", uint64(node.Clocks)), fmt.Sprintf("%.2f", node.VectorsPerCall)}
 	}
 
 	return rows

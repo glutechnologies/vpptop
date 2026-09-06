@@ -92,10 +92,11 @@ func (v *TableView) Resize(w, h int) {
 	v.header.SetRect(tableHeaderTopX, tableHeaderTopY, w, tableHeaderBottomY)
 
 	if v.colWidth != nil {
-		cw := (w - v.tw) / len(v.resized)
-
-		for _, i := range v.resized {
-			v.colWidth[i] = cw
+		if len(v.resized) > 0 {
+			cw := (w - v.tw) / len(v.resized)
+			for _, i := range v.resized {
+				v.colWidth[i] = cw
+			}
 		}
 
 		v.table.Table.ColumnWidths = v.colWidth
